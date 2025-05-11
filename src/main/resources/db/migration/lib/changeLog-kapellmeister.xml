@@ -1,0 +1,157 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+
+    <changeSet id="kapellmeister-1" author="MaximZhukov">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="kapellmeister_operation_group"/>
+            </not>
+        </preConditions>
+        <comment>Создание таблицы kapellmeister_operation_group</comment>
+        <sql>
+            create table kapellmeister_operation_group
+            (
+                id                  uuid primary key,
+                status              text      not null,
+                description         text,
+                create_timestamp    timestamp not null,
+                update_timestamp    timestamp not null,
+                comment             text,
+                parent_operation_id uuid
+            );
+            comment
+            on table kapellmeister_operation_group is 'Транзакции планировщика задач';
+            comment
+            on column kapellmeister_operation_group.id is 'Идентификатор транзакции';
+            comment
+            on column kapellmeister_operation_group.status is 'Статус';
+            comment
+            on column kapellmeister_operation_group.description is 'Описание';
+            comment
+            on column kapellmeister_operation_group.create_timestamp is 'Момент создания';
+            comment
+            on column kapellmeister_operation_group.update_timestamp is 'Момент обновления';
+            comment
+            on column kapellmeister_operation_group.comment is 'Комментарий';
+                    comment
+            on column kapellmeister_operation_group.parent_operation_id is 'Id родительской операции';
+        </sql>
+    </changeSet>
+
+    <changeSet id="kapellmeister-2" author="MaximZhukov">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="kapellmeister_operation"/>
+            </not>
+        </preConditions>
+        <comment>Создание таблицы kapellmeister_operation</comment>
+        <sql>
+            create table kapellmeister_operation
+            (
+                id                        uuid primary key,
+                group_id                  uuid      not null references kapellmeister_operation_group,
+                executor_name             text      not null,
+                "type"                    text      not null,
+                params                    text,
+                description               text,
+                related_entity_id         uuid,
+                rollback_type             text      not null,
+                importance_type           text      not null,
+                priority                  int       not null,
+                attempt_count             int       not null,
+                max_attempt_count         int       not null,
+                retry_delay               bigint    not null,
+                wait_response_timeout     bigint,
+                create_timestamp          timestamp not null,
+                update_timestamp          timestamp not null,
+                deadline_timestamp        timestamp,
+                last_execution_time_stamp timestamp,
+                status                    text      not null,
+                execution_result          text,
+                comment                   text,
+                version                   bigint
+            );
+            comment on table kapellmeister_operation is 'Операции для выполнения планировщиком задач';
+            comment on column kapellmeister_operation.id is 'Идентификатор операции';
+            comment on column kapellmeister_operation.group_id is 'Идентификатор транзакции';
+            comment on column kapellmeister_operation.executor_name is 'Имя экзекутора для выполнения задачи';
+            comment on column kapellmeister_operation.type is 'Тип операции';
+            comment on column kapellmeister_operation.params is 'Сериализованные параметры ';
+            comment on column kapellmeister_operation.description is 'Описание';
+            comment on column kapellmeister_operation.related_entity_id is 'Идентификатор связанной сущности';
+            comment on column kapellmeister_operation.rollback_type is 'Тип действия при откате транзакции';
+            comment on column kapellmeister_operation.importance_type is 'Уровень важности';
+            comment on column kapellmeister_operation.priority is 'Приоритет в очередности выполнения';
+            comment on column kapellmeister_operation.attempt_count is 'Текущее количество попыток выполнения';
+            comment on column kapellmeister_operation.max_attempt_count is 'Максимальное количество попыток выполнения';
+            comment on column kapellmeister_operation.retry_delay is 'Период между попытками выполнения';
+            comment on column kapellmeister_operation.wait_response_timeout is 'Период ожидания результата для асинхронных операций';
+            comment on column kapellmeister_operation.create_timestamp is 'Момент создания';
+            comment on column kapellmeister_operation.update_timestamp is 'Момент обновления';
+            comment on column kapellmeister_operation.deadline_timestamp is 'Момент дэдлайна выполнения';
+            comment on column kapellmeister_operation.last_execution_time_stamp is 'Момент последней попытки выполнения';
+            comment on column kapellmeister_operation.status is 'Статус';
+            comment on column kapellmeister_operation.execution_result is 'Результат выполнения последней попытки';
+            comment on column kapellmeister_operation.comment is 'Комментарий';
+            comment on column kapellmeister_operation.version is 'Версия операции';
+        </sql>
+    </changeSet>
+
+    <changeSet id="kapellmeister-3" author="MaximZhukov">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="kapellmeister_operation_order_binding"/>
+            </not>
+        </preConditions>
+        <comment>Создание таблицы kapellmeister_operation_order_binding</comment>
+        <sql>
+            create table kapellmeister_operation_order_binding
+            (
+                operation_id          uuid not null references kapellmeister_operation,
+                previous_operation_id uuid not null references kapellmeister_operation,
+                primary key (operation_id, previous_operation_id)
+            );
+            comment on table kapellmeister_operation_order_binding is 'Таблица для формирования очередности операций';
+            comment on column kapellmeister_operation_order_binding.operation_id is 'Идентификатор операции';
+            comment on column kapellmeister_operation_order_binding.previous_operation_id is 'Идентификатор предшествующей в очереди операции';
+        </sql>
+    </changeSet>
+
+    <changeSet id="kapellmeister_operation_group_id" author="MaximZhukov">
+        <comment>Создание индекса на гурппу kapellmeister_operation_group_id</comment>
+        <sql>
+            create index kapellmeister_operation_group_id on kapellmeister_operation (group_id);
+        </sql>
+    </changeSet>
+
+    <changeSet id="create-index-kapellmeister_operation_group_status_partial_index" author="MaximZhukov">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists tableName="kapellmeister_operation_group" indexName="kapellmeister_operation_group_status_partial_index"/>
+            </not>
+        </preConditions>
+        <comment>Добавление индекса по статусам на таблицу kapellmeister_operation_group</comment>
+        <sql>
+            create index kapellmeister_operation_group_status_partial_index on kapellmeister_operation_group (status)
+                where status in('CREATED', 'CONDITIONALLY_COMPLETED', 'IN_PROGRESS');
+        </sql>
+    </changeSet>
+
+    <changeSet id="create-index-kapellmeister_operation_status_partial_index" author="MaximZhukov">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists tableName="kapellmeister_operation" indexName="kapellmeister_operation_group_status_partial_index"/>
+            </not>
+        </preConditions>
+        <comment>Добавление индекса по статусам на таблицу kapellmeister_operation</comment>
+        <sql>
+            create index kapellmeister_operation_status_partial_index on kapellmeister_operation (status)
+                where status in('CREATED', 'WAIT_RESPONSE', 'CAN_RETRY', 'VERIFICATION');
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

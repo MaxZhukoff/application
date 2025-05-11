@@ -1,0 +1,4 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  ru.mlc.kapellmeister.configuration.KapellmeisterConfiguration,\
+  ru.mlc.kapellmeister.configuration.KapellmeisterSchedulingConfiguration,\
+  ru.mlc.async.configuration.DeferredExecutionConfiguration

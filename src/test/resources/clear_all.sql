@@ -1,0 +1,3 @@
+truncate table kapellmeister_operation_order_binding cascade;
+truncate table kapellmeister_operation cascade;
+truncate table kapellmeister_operation_group cascade;
